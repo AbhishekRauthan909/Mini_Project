@@ -144,9 +144,9 @@ int add_student(int connect_fd)
     strcat(new_st.login,"-");
     sprintf(wbuffer,"%d",new_st.id);
     strcat(new_st.login,wbuffer);
-    char hashedPassword[1000];
-    strcpy(hashedPassword,crypt("iiitb","666"));
-    strcpy(new_st.password,hashedPassword);
+    //char hashedPassword[1000];
+    //strcpy(hashedPassword,crypt("iiitb","666"));
+    strcpy(new_st.password,"iiitb");
     cfd=open("student_record.txt",O_CREAT|O_APPEND|O_RDWR,S_IRWXU);
     if (cfd==-1)
     {
@@ -178,8 +178,8 @@ int add_faculty(int connect_fd)
 {
     ssize_t rb,wb;//this is for read bytes and write bytes
     char rbuffer[1000],wbuffer[1000];
-    struct student new_ft,pre_ft;
-    int cfd=open("faculty_record.txt",O_RDWR);
+    struct faculty new_ft,pre_ft;
+    int cfd=open("./faculty_record.txt",O_RDWR);
     if (cfd==-1&&errno==ENOENT)//if file does not exit means this is the first faculty
     {
         new_ft.id = 0;
@@ -191,7 +191,7 @@ int add_faculty(int connect_fd)
     }
     else
     {
-        int offset =lseek(cfd,-sizeof(struct student),SEEK_END);
+        int offset =lseek(cfd,-sizeof(struct faculty),SEEK_END);
         if(offset==-1)
         {
             perror("There is while seeking the last student record!");
@@ -265,7 +265,7 @@ int add_faculty(int connect_fd)
     char hashedPassword[1000];
     strcpy(hashedPassword,crypt("iiitb","666"));
     strcpy(new_ft.password,hashedPassword);
-    cfd=open("faculty_record.txt",O_CREAT|O_APPEND|O_RDWR,S_IRWXU);
+    cfd=open("./faculty_record.txt",O_CREAT|O_APPEND|O_RDWR,S_IRWXU);
     if (cfd==-1)
     {
         perror("There is an error in file opening!");
@@ -336,7 +336,7 @@ bool view_student_details(int connectfd,int id)
     int offset=lseek(stfd,id*sizeof(struct student),SEEK_SET);
     rb=read(stfd,&st,sizeof(struct student));
     bzero(wbuffer,sizeof(wbuffer));
-    sprintf(wbuffer,"Student Details - \n\tID :%d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tStatus : %d",st.id,st.name,st.gender,st.age,st.login,st.status);
+    sprintf(wbuffer,"Student Details - \n\tID :%d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tStatus : %d\n\tPassword: %s",st.id,st.name,st.gender,st.age,st.login,st.status,st.password);
     strcat(wbuffer,"\n\nYou'll now be redirected to the main menu...^");
     wb=write(connectfd,wbuffer,strlen(wbuffer));
     if (wb==-1)
@@ -390,7 +390,7 @@ bool view_faculty_details(int connectfd,int id)
     int offset=lseek(stfd,id*sizeof(struct faculty),SEEK_SET);
     rb=read(stfd,&ft,sizeof(struct faculty));
     bzero(wbuffer,sizeof(wbuffer));
-    sprintf(wbuffer,"Faculty Details - \n\tID :%d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s",ft.id,ft.name,ft.gender,ft.age,ft.login);
+    sprintf(wbuffer,"Faculty Details - \n\tID :%d\n\tName : %s\n\tGender : %c\n\tAge: %d\n\tLoginID : %s\n\tPassword :%s",ft.id,ft.name,ft.gender,ft.age,ft.login,ft.password);
     strcat(wbuffer,"\n\nYou'll now be redirected to the main menu...^");
     wb=write(connectfd,wbuffer,strlen(wbuffer));
     if (wb==-1)
@@ -509,6 +509,279 @@ void block_student(int connectfd)
     return;
 }
 
+void modify_student(int connectfd)
+{
+    ssize_t rb,wb;
+    char rbuffer[1000],wbuffer[1000];
+    struct student st;
+    int id;
+    wb=write(connectfd,GET_ID,strlen(GET_ID));
+    if(wb==-1)
+    {
+        printf("There is an error while writing message to client!");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    if(rb==-1)
+    {
+        printf("There is an error while reading id from client!");
+        return;
+    }
+    id=atoi(rbuffer);
+    int stdfd=open("./student_record.txt",O_RDWR);
+    int offset=lseek(stdfd,id*sizeof(st),SEEK_SET);
+    if(offset==-1)
+    {
+        perror("Error while seeking to record!");
+        return;
+    }
+    rb=read(stdfd,&st,sizeof(st));
+    if(rb==-1)
+    {
+        perror("There is an error while reading record from the file!");
+        return;
+    }
+    close(stdfd);
+    wb=write(connectfd,CHANGE_MENU,strlen(CHANGE_MENU));
+    if(wb==-1)
+    {
+        perror("There is an error while writing message to client!");
+        return;
+    }
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    if(rb==-1)
+    {
+        perror("Error while reading !");
+        return;
+    }
+    int choice=atoi(rbuffer);
+    bzero(rbuffer,sizeof(rbuffer));
+    switch(choice)
+    {
+        case 1:
+        wb=write(connectfd,NEW_NAME,strlen(NEW_NAME));
+        if(wb==-1)
+        {
+            perror("There is an error while writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        strcpy(st.name,rbuffer);
+        break;
+        case 2:
+        wb=write(connectfd,NEW_AGE,strlen(NEW_AGE));
+        if(wb==-1)
+        {
+            perror("There is an error while writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        int uage=atoi(rbuffer);
+        st.age=uage;
+        break;
+        case 3:
+        wb=write(connectfd,NEW_GENDER,strlen(NEW_GENDER));
+        if(wb==-1)
+        {
+            perror("While writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        st.gender=rbuffer[0];
+        break;
+        default:
+        bzero(wbuffer,sizeof(wbuffer));
+        strcpy(wbuffer,INVALID_MENU_CHOICE);
+        wb=write(connectfd,wbuffer,strlen(wbuffer));
+        if(wb==-1)
+        {
+            perror("There is an error while writing!");
+            return;
+        }
+        rb=read(connectfd,rbuffer,sizeof(rbuffer)); // Dummy read
+        return;
+    }
+    stdfd=open("./student_record.txt",O_WRONLY);
+    offset=lseek(stdfd,id*sizeof(st),SEEK_SET);
+    if(stdfd==-1)
+    {
+        perror("There is an error while opening the file!");
+        return;
+    }
+    wb=write(stdfd,&st,sizeof(st));
+    if(wb==-1)
+    {
+        perror("There is an error while updating");
+        return;
+    }
+    close(stdfd);
+    wb=write(connectfd,UPDATE_SUCCESS, strlen(UPDATE_SUCCESS));
+    if(wb==-1)
+    {
+        perror("There is an error while writing to client");
+        return;
+    }
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));//dummy read
+    return;
+}
+
+
+
+void modify_faculty(int connectfd)
+{
+    ssize_t rb,wb;
+    char rbuffer[1000],wbuffer[1000];
+    struct faculty ft;
+    int id;
+    wb=write(connectfd,GET_ID,strlen(GET_ID));
+    if(wb==-1)
+    {
+        printf("There is an error while writing message to client!");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    if(rb==-1)
+    {
+        printf("There is an error while reading id from client!");
+        return;
+    }
+    id=atoi(rbuffer);
+    int stdfd=open("./faculty_record.txt",O_RDWR);
+    int offset=lseek(stdfd,id*sizeof(ft),SEEK_SET);
+    if(offset==-1)
+    {
+        perror("Error while seeking to record!");
+        return;
+    }
+    rb=read(stdfd,&ft,sizeof(ft));
+    if(rb==-1)
+    {
+        perror("There is an error while reading record from the file!");
+        return;
+    }
+    close(stdfd);
+    wb=write(connectfd,CHANGE_MENU,strlen(CHANGE_MENU));
+    if(wb==-1)
+    {
+        perror("There is an error while writing message to client!");
+        return;
+    }
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    if(rb==-1)
+    {
+        perror("Error while reading !");
+        return;
+    }
+    int choice=atoi(rbuffer);
+    bzero(rbuffer,sizeof(rbuffer));
+    switch(choice)
+    {
+        case 1:
+        wb=write(connectfd,NEW_NAME,strlen(NEW_NAME));
+        if(wb==-1)
+        {
+            perror("There is an error while writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        strcpy(ft.name,rbuffer);
+        break;
+        case 2:
+        wb=write(connectfd,NEW_AGE,strlen(NEW_AGE));
+        if(wb==-1)
+        {
+            perror("There is an error while writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        int uage=atoi(rbuffer);
+        ft.age=uage;
+        break;
+        case 3:
+        wb=write(connectfd,NEW_GENDER,strlen(NEW_GENDER));
+        if(wb==-1)
+        {
+            perror("While writing message to client!");
+            return;
+        }
+        rb=read(connectfd,&rbuffer,sizeof(rbuffer));
+        if(rb==-1)
+        {
+            perror("There is an error while reading!");
+            return;
+        }
+        ft.gender=rbuffer[0];
+        break;
+        default:
+        bzero(wbuffer,sizeof(wbuffer));
+        strcpy(wbuffer,INVALID_MENU_CHOICE);
+        wb=write(connectfd,wbuffer,strlen(wbuffer));
+        if(wb==-1)
+        {
+            perror("There is an error while writing!");
+            return;
+        }
+        rb=read(connectfd,rbuffer,sizeof(rbuffer)); // Dummy read
+        return;
+    }
+    stdfd=open("./faculty_record.txt",O_WRONLY);
+    offset=lseek(stdfd,id*sizeof(ft),SEEK_SET);
+    if(stdfd==-1)
+    {
+        perror("There is an error while opening the file!");
+        return;
+    }
+    wb=write(stdfd,&ft,sizeof(ft));
+    if(wb==-1)
+    {
+        perror("There is an error while updating");
+        return;
+    }
+    close(stdfd);
+    wb=write(connectfd,UPDATE_SUCCESS, strlen(UPDATE_SUCCESS));
+    if(wb==-1)
+    {
+        perror("There is an error while writing to client");
+        return;
+    }
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    return;
+}
+
+void logout_exit(int connectfd)
+{
+    char wbuffer[1000],rbuffer[1000];
+    strcpy(wbuffer,"Logging you out !$");
+    write(connectfd,wbuffer,sizeof(wbuffer));
+}
+
 bool admin_operation_handler(int connectfd)
 {
     if (login_handler(connectfd))//if login successfull then we have to do this
@@ -553,6 +826,15 @@ bool admin_operation_handler(int connectfd)
                 break;
                 case 6:
                 block_student(connectfd);
+                break;
+                case 7:
+                modify_student(connectfd);
+                break;
+                case 8:
+                modify_faculty(connectfd);
+                break;
+                case 9:
+                logout_exit(connectfd);
                 break;
             }
         }

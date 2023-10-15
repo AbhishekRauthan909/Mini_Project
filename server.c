@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include "/Users/abhishekrauthan/Documents/Project/functions/constants.h"
 #include "/Users/abhishekrauthan/Documents/Project/functions/admin.h"
+#include "/Users/abhishekrauthan/Documents/Project/functions/faculty_op.h"
+#include "/Users/abhishekrauthan/Documents/Project/functions/student_op.h"
 void connection_handler(int connFD);
 int main()
 {
@@ -87,12 +89,12 @@ void connection_handler(int connectfd)
                 admin_operation_handler(connectfd);
                 break;
             case 2:
+                faculty_operation_handler(connectfd);
                 break;
             case 3:
+                 student_operation_handler(connectfd);
                 break;
             case 4:
-                break;
-            default:
                 break;
             }
         }
