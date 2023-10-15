@@ -24,4 +24,11 @@
 #define FACULTY_MENU "..........Welcome to Faculty Menu..........\n1.View Offering Courses\n2.Add New Course\n3.Remove Course from catalog\n4.Update Course Details\n5.Change Password\n6.Logout and Exit\nEnter Your choice:"
 #define NEW_PASSWORD "What's the new value for password:?"
 #define STUDENT_MENU "..........Welcome to Student Menu..........\n1.View All Courses\n2.Enrol Pic New Course\n3.Drop Course \n4.View Enrolled Course Details\n5.Change Password\n6.Logout and Exit\nEnter Your choice:"
+#define ADD_COURSE_ID "What's the course id?"
+#define ADD_CREDITS "What's the credits?"
+#define ADD_SEATS "What's the total seats?"
+#define COURSE_SUCCESS "The course has been successfully added!\nYou'll now be redirected to the main menu!^"
+#define COURSE_FAILURE "The course has not  been successfully added!\nYou'll now be redirected to the main menu!^"
+#define COURSE_SUCCESS_REMOVE "The course has been successfully delete!\nYou'll now be redirected to the main menu!^"
+
 #endif

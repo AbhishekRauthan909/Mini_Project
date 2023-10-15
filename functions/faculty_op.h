@@ -2,6 +2,7 @@
 #define ADMIN_FUN
 #include "./constants.h"
 #include "/Users/abhishekrauthan/Documents/Project/structure/faculty.h"
+#include "/Users/abhishekrauthan/Documents/Project/structure/courses.h"
 bool faculty_operation_handler(int connectfd);
 int login_faculty(int connectfd)
 {
@@ -121,6 +122,169 @@ void faculty_logout_exit(int connectfd)
 }
 
 
+void add_new_course(int connectfd,int id)
+{
+    char rbuffer[1000],wbuffer[1000];//here this is for read write bufferr
+    struct courses c;//here i am declaring courses type variable
+    ssize_t rb,wb;//this is for how many bytes read and write
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Read-write permissions for the owner and read permissions for others
+    int fd=open("./courses.txt", O_RDWR|O_APPEND|O_CREAT,mode);//here i am opening the file
+    bzero(rbuffer,sizeof(rbuffer));
+    bzero(wbuffer,sizeof(wbuffer));
+    c.f_id=id;//setting course faculty id
+    sprintf(wbuffer,"%s",ADD_NAME);
+    wb=write(connectfd,wbuffer,sizeof(wbuffer));//asking for course name from client
+    if(wb==-1)
+    {
+        perror("There is an error in writing!");
+        return;
+    }
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));//reading course name from client
+    if(rb==-1)
+    {
+        perror("There is an error while reading student name!");
+        return;
+    }
+    strcpy(c.name,rbuffer);
+    wb=write(connectfd,ADD_COURSE_ID,strlen(ADD_COURSE_ID));//asking for course id from client
+    if (wb==-1)
+    {
+        perror("There is an error while writing the message!");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,&rbuffer,sizeof(rbuffer));//reading course id from client
+    if(rb==-1)
+    {
+        perror("There is some error while writing ");
+        return;
+    }
+    int course_id=atoi(rbuffer);//converting course_id to integer
+    c.c_id=course_id;//assigning course_id
+    wb=write(connectfd,ADD_CREDITS,strlen(ADD_CREDITS));//asking for credits
+    if (wb==-1)
+    {
+        perror("There is an error while writing the message!");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,&rbuffer,sizeof(rbuffer));//reading credits
+    if(rb==-1)
+    {
+        perror("There is some error while writing");
+        return;
+    }
+    int credits=atoi(rbuffer);//converting credits to integer
+    c.credit=credits;//assigning credits
+    wb=write(connectfd,ADD_SEATS,strlen(ADD_SEATS));//asking for seats
+    if (wb==-1)
+    {
+        perror("There is an error while writing the message!");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,&rbuffer,sizeof(rbuffer));//reading credits
+    if(rb==-1)
+    {
+        perror("There is some error while writing");
+        return;
+    }
+    int seats=atoi(rbuffer);
+    c.seats=seats;//assigning seats this is total seats
+    c.avail_seats=seats;//at starting avail_seats will be equal to total seats
+    write(fd,&c,sizeof(c));//writing the enrolled course into the enrolled file
+    close(fd);
+    wb=write(connectfd,COURSE_SUCCESS,strlen(COURSE_SUCCESS));//giving success message course has been successfully added
+    if(wb==-1)
+    {
+        perror("There is an error while writing to client");
+        return;
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));//dummy read
+    return;
+}
+
+void view_courses(int connectfd, int id) 
+{
+    ssize_t rb, wb;//this is for number read and write bytes
+    char wbuffer[1000],rbuffer[1000]; //Buffer for writing
+    struct courses c; //Variable for storing course data
+    int fd = open("./courses.txt", O_RDONLY); //Open the courses file in read-only mode
+    if (fd==-1) 
+    {
+        perror("Error opening courses file for reading");
+        return;
+    }
+    while (read(fd,&c,sizeof(c))>0)
+    {
+        if (c.f_id == id) //here i am checking if faculty id matches 
+        {
+            bzero(wbuffer,sizeof(wbuffer));
+            sprintf(wbuffer,"Course Details:\n\tCourse ID: %d\n\tName: %s\n\tCredits: %d\n\tSeats: %d\n\tAvailable seats:%d", c.c_id, c.name, c.credit,c.seats,c.avail_seats);
+            strcat(wbuffer,"\n\nYou'll now be redirected to the main menu...^");
+            wb = write(connectfd, wbuffer, strlen(wbuffer));//Send course information to the client
+            if (wb == -1) 
+            {
+                perror("Error writing course information to the client");
+                return;
+            }
+            bzero(rbuffer,sizeof(rbuffer));
+            rb=read(connectfd,rbuffer,sizeof(rbuffer)); // Dummy read
+        }
+    }
+    close(fd);
+}
+
+void remove_course(int connectfd,int id)
+{
+    ssize_t rb,wb;
+    char rbuffer[1000],wbuffer[1000];
+    struct courses c;
+    bzero(rbuffer,sizeof(rbuffer));
+    bzero(wbuffer,sizeof(wbuffer));
+    wb=write(connectfd,ADD_COURSE_ID,strlen(ADD_COURSE_ID));
+    if(wb==-1)
+    {
+        perror("There is an error while writing the message!");
+        return;   
+    }
+    bzero(rbuffer,sizeof(rbuffer));
+    rb=read(connectfd,rbuffer,sizeof(rbuffer));
+    if(rb==-1)
+    {
+        perror("There is an error while reading the message!");
+        return;
+    }
+    int course_id=atoi(rbuffer);
+    int fd = open("./courses.txt",O_RDWR);
+    if (fd==-1) 
+    {
+        perror("Error opening courses file for reading");
+        return;
+    }
+    while(read(fd,&c,sizeof(c))>0)
+    {
+        if (c.f_id==id&&c.c_id==course_id) //here i am checking if faculty id matches 
+        {
+            lseek(fd, -sizeof(c), SEEK_CUR);//now i am moving the file offset to overwrite
+            c.f_id=-1;
+            write(fd, &c, sizeof(c)); //writing the updated course back to the file
+            close(fd);
+            wb=write(connectfd,UPDATE_SUCCESS,strlen(UPDATE_SUCCESS));
+            if(wb==-1)
+            {
+                perror("There is an error while writing to client");
+                return;
+            }
+            rb=read(connectfd,rbuffer,sizeof(rbuffer));//dummy read
+            return;
+        }
+    }
+    return;
+}
+
+
 bool faculty_operation_handler(int connectfd)
 {
     int id=login_faculty(connectfd);
@@ -152,10 +316,13 @@ bool faculty_operation_handler(int connectfd)
             switch(choice)
             {
                 case 1:
+                view_courses(connectfd,id);
                 break;
                 case 2:
+                add_new_course(connectfd,id);
                 break;
                 case 3:
+                remove_course(connectfd,id);
                 break;
                 case 4:
                 break;
